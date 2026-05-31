@@ -1,0 +1,32 @@
+const mongoose = require("mongoose")
+
+const userSchema = new mongoose.Schema({
+    username:{
+        type: String,
+        unique: [true, "Username already exists!"],
+        required: [ true, "Username is required"]
+    },
+
+    email:{
+        type: String,
+        unique: [true, "Email already exists!"],
+        required: [true, "Email is required"]
+    },
+
+    password: {
+        type: String,
+        required: [true, "Password is required"]
+    },
+
+    bio: String,
+
+    profileImage:{
+        type: String,
+        default: "https://upload.wikimedia.org/wikipedia/commons/0/03/Twitter_default_profile_400x400.png",
+    }
+})
+
+const userModel = mongoose.model('insta-users', userSchema ) //insta-users naam se save hoga in db
+
+
+module.exports = userModel;
