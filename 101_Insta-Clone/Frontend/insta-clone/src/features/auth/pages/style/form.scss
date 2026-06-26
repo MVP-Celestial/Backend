@@ -1,0 +1,49 @@
+main {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 450px;
+    text-align: center;
+    background-color: rgb(121, 97, 97);
+    padding: 30px;
+    border-radius: 1rem;
+   
+    
+
+    a {
+        color: rgb(42, 209, 209);
+        text-decoration: none;
+    }
+
+
+    h3 {
+    color: whitesmoke;
+    }
+
+    input,button {
+        border: none;
+        outline: none;
+        padding-inline: 1.5rem;
+        padding-block: 1rem;
+        border-radius: 1rem;
+    }
+
+    button {
+        background-color: rgb(186, 26, 26);
+        color: whitesmoke;
+        cursor: pointer;
+        
+    }
+
+    button:hover {
+        background-color: rgb(137, 9, 30);
+    }
+}
