@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, createBrowserRouter } from "react-router-dom";
 import Login from "./features/auth/pages/Login";
 import Register from "./features/auth/pages/Register";
+import Feed from "./features/auth/pages/Feed"
 
 function AppRoutes() {
     return(
@@ -8,6 +9,10 @@ function AppRoutes() {
            <Routes>
             <Route path="/login" element={<Login/>}/>
             <Route path="/register" element={<Register/>}/>
+            <Route path="/" element={<Feed/>}/>
+
+            
+
 
            </Routes>
         </BrowserRouter>
@@ -15,3 +20,14 @@ function AppRoutes() {
 }
 
 export default AppRoutes
+
+// export const router = createBrowserRouter([
+//     {
+//         path: "/login",
+//         element: <login/>
+//     },
+//     {
+//         path: "/register",
+//         element: <register/>
+//     }
+// ])
