@@ -15,7 +15,8 @@ const userSchema = new mongoose.Schema({
 
     password: {
         type: String,
-        required: [true, "Password is required"]
+        required: [true, "Password is required"],
+        select: false //stops reading password from db (used to avoid sending passw in response)
     },
 
     bio: String,
@@ -27,12 +28,12 @@ const userSchema = new mongoose.Schema({
 
     followers: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: "users"
+        ref: "insta-users"
     }],
 
     following: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: "users"
+        ref: "insta-users"
     }]
 })
 
