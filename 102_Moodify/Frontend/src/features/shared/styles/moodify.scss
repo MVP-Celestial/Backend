@@ -1,0 +1,362 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+// ---------------------------------------------------------------------
+// Moodify design tokens
+// ---------------------------------------------------------------------
+:root {
+  --bg: #170D10;
+  --surface: #241318;
+  --surface-2: #2E1B20;
+  --brass: #C9A15A;
+  --brass-bright: #E8C579;
+  --amber: #FF9B54;
+  --text: #F4E9DD;
+  --muted: #B49C90;
+  --rose: #C9607A;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 50% 0%, #2a1620 0%, var(--bg) 55%),
+    var(--bg);
+  color: var(--text);
+  font-family: 'Work Sans', sans-serif;
+  margin: 0;
+  min-height: 100vh;
+}
+
+.moodify-display { font-family: 'Bebas Neue', sans-serif; }
+.moodify-mono { font-family: 'IBM Plex Mono', monospace; }
+
+// ---------------------------------------------------------------------
+// Layout
+// ---------------------------------------------------------------------
+.moodify-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px 80px;
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.moodify-topbar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 44px;
+
+  .wordmark {
+    font-size: 28px;
+    letter-spacing: 4px;
+    color: var(--brass-bright);
+    text-shadow: 0 0 18px rgba(232, 197, 121, 0.35);
+  }
+}
+
+.logout-btn {
+  background: transparent;
+  border: 1px solid var(--brass);
+  color: var(--brass);
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover { background: var(--brass); color: var(--bg); }
+}
+
+// ---------------------------------------------------------------------
+// Camera / detect panel
+// ---------------------------------------------------------------------
+.cam-panel {
+  width: 100%;
+  background: linear-gradient(160deg, var(--surface), var(--surface-2));
+  border: 1px solid rgba(201, 161, 90, 0.25);
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 24px;
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.6);
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+.cam-frame {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0c0608;
+  border: 1px solid rgba(201, 161, 90, 0.35);
+  flex-shrink: 0;
+}
+
+.cam-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.cam-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  padding: 0 10px;
+}
+
+.cam-scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--amber), transparent);
+  box-shadow: 0 0 10px var(--amber);
+  opacity: 0.85;
+  animation: moodify-scan 2.6s ease-in-out infinite;
+}
+
+@keyframes moodify-scan {
+  0%, 100% { top: 6%; }
+  50% { top: 92%; }
+}
+
+.cam-readout { flex: 1; }
+
+.cam-heading {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.cam-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 155, 84, 0.1);
+  border: 1px solid rgba(255, 155, 84, 0.4);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 18px;
+  letter-spacing: 1px;
+  color: var(--brass-bright);
+}
+
+.cam-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 8px var(--amber);
+}
+
+.detect-btn {
+  display: block;
+  margin-top: 16px;
+  background: linear-gradient(160deg, var(--brass-bright), var(--brass));
+  border: none;
+  color: var(--bg);
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(201, 161, 90, 0.3);
+  transition: transform 0.15s, opacity 0.2s;
+
+  &:active { transform: scale(0.96); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.cam-error {
+  color: #e07a5f;
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+// ---------------------------------------------------------------------
+// Now Playing panel
+// ---------------------------------------------------------------------
+.player-panel {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--surface), var(--surface-2));
+  border: 1px solid rgba(201, 161, 90, 0.25);
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -40%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 155, 84, 0.18), transparent 70%);
+    pointer-events: none;
+  }
+}
+
+.player-empty,
+.player-loading {
+  color: var(--muted);
+  text-align: center;
+  padding: 40px 0;
+}
+
+.np-row {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  position: relative;
+}
+
+.disc {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+  background: radial-gradient(circle at center, var(--brass-bright) 0 8px, #0c0608 8px 10px, #1a1013 10px 100%);
+  box-shadow: 0 0 0 1px rgba(201, 161, 90, 0.3), 0 12px 24px rgba(0, 0, 0, 0.5);
+  animation: moodify-spin 6s linear infinite;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: repeating-radial-gradient(circle, transparent 0 6px, rgba(255, 255, 255, 0.03) 6px 7px);
+  }
+
+  &.paused { animation-play-state: paused; }
+}
+
+@keyframes moodify-spin {
+  to { transform: rotate(360deg); }
+}
+
+.np-info { flex: 1; min-width: 0; }
+
+.np-eyebrow {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.np-title {
+  font-size: 26px;
+  letter-spacing: 1px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.np-mood {
+  font-size: 13px;
+  color: var(--rose);
+  margin-top: 4px;
+}
+
+.led-time {
+  font-size: 13px;
+  color: var(--amber);
+  text-shadow: 0 0 8px rgba(255, 155, 84, 0.6);
+  letter-spacing: 1px;
+  margin-top: 14px;
+}
+
+.progress-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 4px;
+  margin-top: 16px;
+  background: repeating-linear-gradient(90deg, #0c0608, #0c0608 2px, transparent 2px, transparent 4px);
+  position: relative;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  appearance: none;
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 8px var(--amber);
+    cursor: pointer;
+    margin-top: -3px;
+  }
+}
+
+.volume-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 12px;
+
+  input[type="range"] { flex: 1; }
+}
+
+.transport {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 22px;
+  margin-top: 26px;
+  position: relative;
+}
+
+.tbtn {
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 18px;
+  opacity: 0.75;
+  transition: opacity 0.2s, transform 0.15s;
+
+  &:hover { opacity: 1; }
+
+  &.play {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--brass-bright), var(--brass));
+    color: var(--bg);
+    font-size: 18px;
+    opacity: 1;
+    box-shadow: 0 8px 20px rgba(201, 161, 90, 0.35);
+
+    &:active { transform: scale(0.94); }
+  }
+}

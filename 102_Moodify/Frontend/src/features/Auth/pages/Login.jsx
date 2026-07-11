@@ -1,49 +1,63 @@
 import React, { useState } from 'react'
-import "../style/login.scss"
+import '../style/login.scss'
 import { Link } from 'react-router'
 import { useAuth } from '../Hooks/useAuth'
 import { useNavigate } from 'react-router'
 
-
 const Login = () => {
+  const { handleLogin } = useAuth()
+  const navigate = useNavigate()
 
-    const { loading, handleLogin } = useAuth()
-    const navigate = useNavigate()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setIsSubmitting(true)
 
-    async function handleSubmit(e) {
-        e.preventDefault()
-        await handleLogin({ email, password })
-        navigate("/")
+    try {
+      await handleLogin({ email, password })
+      navigate('/')
+    } finally {
+      setIsSubmitting(false)
     }
+  }
 
-    return (
-        <div className="form-page">
-            <div className="form-container">
-                <h1>LOGIN</h1>
-                <form onSubmit={handleSubmit}>
-                    <input
-                        type="text"
-                        placeholder='Email'
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                    />
-                    <input
-                        type="password"
-                        placeholder='Password'
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <button>
-                        {loading ? "Logging in..." : "LOGIN"}
-                    </button>
-                </form>
-                <h1>Don't have an account? <Link to="/register">Register</Link></h1>
-            </div>
+  return (
+    <div className="form-page">
+      <div className="form-container">
+        <div className="form-brand">
+          <div className="form-icon">♪</div>
+          <h1 className="form-title">Welcome back</h1>
+          <p className="form-subtitle">Sign in to continue your mood journey.</p>
         </div>
-    )
+
+        <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Logging in...' : 'LOGIN'}
+          </button>
+        </form>
+
+        <p className="form-switch">
+          Don’t have an account?
+          <Link to="/register" className="form-link">Register</Link>
+        </p>
+      </div>
+    </div>
+  )
 }
 
 export default Login
