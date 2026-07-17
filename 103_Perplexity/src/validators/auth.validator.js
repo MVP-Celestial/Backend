@@ -8,6 +8,15 @@ const registerValidation = [
     .isLength({ min: 2, max: 80 })
     .withMessage("Name must be between 2 and 80 characters"),
 
+  body("username")
+    .trim()
+    .notEmpty()
+    .withMessage("Username is required")
+    .isLength({ min: 3, max: 30 })
+    .withMessage("Username must be between 3 and 30 characters")
+    .matches(/^[a-z0-9_]+$/)
+    .withMessage("Username can only contain lowercase letters, numbers, and underscores"),
+
   body("email")
     .trim()
     .notEmpty()

@@ -5,41 +5,38 @@ import { sendEmail } from "../services/mail.service.js";
 
 export async function register(req, res) {
 
-    const {username, email, password} = req.body;
+    const { name, username, email, password } = req.body;
 
     const isUserAlreadyExists = await userModel.findOne({
-        $or: [{email},{password}]
+        $or: [{ email }, { username }]
+    });
 
-    })
-
-    if(isUserAlreadyExists) {
+    if (isUserAlreadyExists) {
         return res.status(400).json({
-            message: "User with this username or email already exists",
             success: false,
-            err: "user already exists"
-        })
+            message: "User already exists"
+        });
     }
 
-    const user = await userModel.create({ username, email, password })
+    const user = await userModel.create({
+        name,
+        username,
+        email,
+        password
+    });
 
     await sendEmail({
         to: email,
-        subject: "Welcome to perplexity",
-        text: `Hi ${username}, \n\n Thankyou for registering at perplexity. We are excited to have you on board\n\nBest regards,\nThe perplexity Team`,
-        html: `<p>Hi ${username}, </p>
-        <p>Thankyou for registering at <strong>Perplexity</strong>. We're excited to have you on board</p>
-        <p>Best regards, <br>The perplexity team</br></p>`
-    })
+        subject: "Welcome to Perplexity",
+        text: `Hi ${name},
+
+Thank you for registering.`,
+        html: `<p>Hi ${name},</p>
+               <p>Thank you for registering.</p>`
+    });
 
     res.status(201).json({
-        message: "user registered successfully",
         success: true,
-        user: {
-            id: user._id,
-            username: user.username,
-            email: user.email,
-        }
-
-    })
-
+        user
+    });
 }
