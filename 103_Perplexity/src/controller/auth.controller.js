@@ -25,6 +25,11 @@ export async function register(req, res) {
         password
     });
 
+    const emailVerificationToken = jwt.sign({
+        email: user.email,
+
+    },process.env.JWT_SECRET);
+
     await sendEmail({
         to: email,
         subject: "Welcome to Perplexity",
@@ -32,11 +37,102 @@ export async function register(req, res) {
 
 Thank you for registering.`,
         html: `<p>Hi ${name},</p>
-               <p>Thank you for registering.</p>`
+               <p>Thank you for registering.</p>
+               <p>please verify your email by clicking the link below:</p>
+               <a href="http://localhost:3000/api/auth/verify-email?token=${emailVerificationToken}">Verify Email</a>`
     });
 
     res.status(201).json({
         success: true,
         user
     });
+}
+
+export async function verifyEmail(req, res) {
+
+    const {token} = req.query;  //destructure the token
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);  //verifies the authenticity of a JSON Web Token (JWT) and extracts its underlying data payload using a secret key.
+
+    
+    
+
+    const user = await userModel.findOne({email: decoded.email});
+
+    if(!user) {
+        return res.status(400).json({
+            message: "Invalid Token",
+            success: false,
+            err: "user not found"
+        })
+    }
+
+    user.isVerified = true;
+
+    await user.save()
+
+    const html = 
+    `
+    <h1>Email verified Successfully</h1>
+    <p>Your Email has been verified. now you can login to your account</p>
+    `
+
+    return res.send(html);
+
+    } catch (error) {
+        return res.status(400).json({
+            message: "Invalid Token",
+        })
+    }
+
+
+
+
+}
+
+export async function login(req, res) {
+    const { email, password } = req.body;
+
+    const user = await userModel.findOne({ email });
+
+    if (!user) {
+        return res.status(400).json({
+            success: false,
+            message: "User not found"
+        });
+    }
+
+    if(!password) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid password"
+        });
+    }
+
+    if (!user.isVerified) {
+        return res.status(400).json({
+            success: false,
+            message: "Please verify your email before logging in"
+        });
+    }
+
+    const token = jwt.sign({
+        id: user._id,
+        email: user.email,
+        username: user.username,
+        
+    }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+    res.cookie("token", token)
+
+    res.status(200).json({
+        success: true,
+        user: {
+            id: user._id,
+            name: user.name,
+            username: user.username,
+        }
+    });
+    
 }

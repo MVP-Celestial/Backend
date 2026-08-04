@@ -1,6 +1,6 @@
 import { body, validationResult } from "express-validator";
 
-const registerValidation = [
+export const registerValidation = [
   body("name")
     .trim()
     .notEmpty()
@@ -45,6 +45,20 @@ const registerValidation = [
 
     next();
   },
+];
+
+export const loginValidation = [
+  body("email")
+    .trim()
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Please provide a valid email address"),
+
+  body("password")
+    .notEmpty()
+    .withMessage("Password is required"),
+
 ];
 
 export default registerValidation;
