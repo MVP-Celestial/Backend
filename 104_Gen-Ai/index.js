@@ -2,7 +2,25 @@ import { createInterface } from 'readline/promises';
 import { stdin as input, stdout as output } from 'process';
 import { ChatMistralAI } from "@langchain/mistralai";
 import "dotenv/config";
-import { HumanMessage } from "@langchain/core/messages";
+import { createAgent, HumanMessage, tool } from "langchain";
+import { sendEmail } from './mail.service.js';
+import * as z from "zod";
+
+
+const emailTool = tool(
+  sendEmail,
+
+  {
+    name: "sendEmail",
+    description: "Used to send emails.",
+    schema: z.object({
+      to: z.string().describe("The recipient's email address."),
+      html: z.string().describe("The HTML content of the email."),
+      subject: z.string().describe("The subject of the email."),
+      text: z.string().optional().describe("The plain text content of the email (optional)."),
+    })
+  }
+)
 
 const colors = {
   reset: '\x1b[0m',
@@ -30,6 +48,11 @@ model: "mistral-small-latest",
 temperature: 0
 });
 
+const agent = createAgent({ // calls the emailtool function when the user asks to send an email
+  model,
+  tools: [emailTool]
+})
+
 const messages = []
 
 try {
@@ -41,11 +64,12 @@ try {
 
     messages.push(new HumanMessage(userInput)); // pushes the user's input to the messages array
 
-    const response = await model.invoke(messages);
+    const response = await agent.invoke({messages});
 
-    messages.push(response); //stores the AI's response in the messages array
+    messages.length = 0;
+messages.push(...response.messages);//stores the AI's response in the messages array
 
-    console.log(`\n${color('bold', color('green', 'AI'))}: ${response.text}\n`);
+    console.log(`\n${color('bold', color('green', 'AI'))}: ${response.messages[response.messages.length - 1].content}\n`);
   }
 } finally {
   rl.close();
