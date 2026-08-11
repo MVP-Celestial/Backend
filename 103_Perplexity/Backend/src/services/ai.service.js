@@ -9,7 +9,7 @@ const model = new ChatGoogleGenerativeAI({
 
 export async function testAi() {
   try {
-    const response = await model.invoke("What is the best anime of all time answer in 100 words?");
+    const response = await model.invoke("");
     console.log(response.content ?? response.text);
   } catch (error) {
     console.error("Gemini request failed:", error.message);
