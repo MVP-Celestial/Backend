@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import authRouter from "./routes/auth.routes.js";
 import morgan from "morgan";
 import cors from "cors";
+import chatRouter from "./routes/chat.routes.js";
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.use(cors({
 })
 );
 
+app.use("/api/chat", chatRouter);
 app.use("/api/auth", authRouter);
 
 app.get("/", (req, res) => {
