@@ -1,5 +1,5 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
 
 const geminiModel = new ChatGoogleGenerativeAI({
   // Use a currently supported model. If this model is not enabled for your
@@ -11,9 +11,15 @@ const geminiModel = new ChatGoogleGenerativeAI({
 
 export async function generateResponse(message) {
   try {
-    const response = await geminiModel.invoke([
-      new HumanMessage(message)
-    ]);
+    const response = await geminiModel.invoke(messages.map (msg => {
+      if (msg.role === "user") {
+        return new HumanMessage(msg.content);
+      } else if (msg.role === "ai") {
+        return new AIMessage(msg.content);
+      } else {
+        throw new Error(`Unknown message role: ${msg.role}`);
+      }
+    }));
 
     return response.text;
   } catch (error) {
