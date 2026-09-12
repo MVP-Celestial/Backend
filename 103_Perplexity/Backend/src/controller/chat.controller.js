@@ -25,7 +25,7 @@ export async function sendMessage(req, res) {
 
     }
 
-    const messages = await messageModel.find({ chat: chat._id }).sort({ createdAt: 1 });
+    const messages = await messageModel.find({ chat: chat._id || chatId }).sort({ createdAt: 1 });
     
 
     const userMessage = await messageModel.create({
