@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
+import ReactMarkdown from 'react-markdown'
 import { useChat } from '../hooks/useChat'
+import { getChats, getMessages } from '../service/chat.api'
+import { useDispatch } from 'react-redux'
+import { setCurrentChatId } from '../chat.slice'
 import {
   Compass,
   MessagesSquare,
@@ -16,6 +20,7 @@ import {
   UserPlus,
   Plus,
   ArrowUp,
+  PanelLeft,
   Sparkles,
   Sun,
   Moon,
@@ -75,9 +80,15 @@ const GLOW_FADE_MS = 600
 
 const Dashboard = () => {
   const chat = useChat()
+  const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
+  const { currentChatId, isLoading, error } = useSelector((state) => state.chat)
 
   const [query, setQuery] = useState('')
+  const [messages, setMessages] = useState([])
+  const [previousChats, setPreviousChats] = useState([])
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarHover, setSidebarHover] = useState(false)
   const [focusMode, setFocusMode] = useState(FOCUS_MODES[0])
   const [focusOpen, setFocusOpen] = useState(false)
   const [citationsOn, setCitationsOn] = useState(true)
@@ -90,6 +101,33 @@ const Dashboard = () => {
   useEffect(() => {
     chat.initializeSocketConnection?.()
   }, [])
+
+  useEffect(() => {
+    getChats()
+      .then((data) => setPreviousChats(data.chats || []))
+      .catch(() => setPreviousChats([]))
+  }, [])
+
+  const openPreviousChat = async (chatItem) => {
+    try {
+      const data = await getMessages(chatItem._id)
+      setMessages((data.messages || []).map((message) => ({
+        id: message._id,
+        sender: message.sender === 'assistant' ? 'assistant' : 'user',
+        content: message.content,
+      })))
+      dispatch(setCurrentChatId(chatItem._id))
+    } catch {
+      // Leave the current conversation visible if history loading fails.
+    }
+  }
+
+  const startNewThread = () => {
+    setMessages([])
+    setQuery('')
+    dispatch(setCurrentChatId(null))
+    playIntroGlow()
+  }
 
   // plays the shimmering gradient border once: on dashboard mount, and again
   // whenever a new chat/thread is started, or the theme is toggled
@@ -111,12 +149,25 @@ const Dashboard = () => {
   const greeting = useMemo(() => getGreeting(new Date()), [])
   const firstName = user?.name?.split(' ')[0] || 'there'
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     const trimmed = query.trim()
-    if (!trimmed) return
-    chat.sendMessage?.(trimmed, { focusMode, citations: citationsOn })
+    if (!trimmed || isLoading) return
+
+    setMessages((current) => [...current, { id: `user-${Date.now()}`, sender: 'user', content: trimmed }])
     setQuery('')
+
+    try {
+      const data = await chat.handleSendMessage(trimmed, currentChatId)
+      setPreviousChats((current) => [data.chat, ...current.filter((item) => item._id !== data.chat._id)])
+      setMessages((current) => [...current, {
+        id: data.aiMsg._id || `assistant-${Date.now()}`,
+        sender: 'assistant',
+        content: data.aiMsg.content,
+      }])
+    } catch {
+      // The hook stores the request error in Redux; keep the user's message visible.
+    }
   }
 
   const applyPrompt = (text) => {
@@ -137,13 +188,58 @@ const Dashboard = () => {
             0% { background-position: 0% 50%; }
             100% { background-position: 200% 50%; }
           }
+          .chat-markdown p { margin: 0 0 0.75rem; }
+          .chat-markdown p:last-child { margin-bottom: 0; }
+          .chat-markdown ul { list-style: disc; margin: 0.5rem 0 0.75rem 1.25rem; }
+          .chat-markdown ol { list-style: decimal; margin: 0.5rem 0 0.75rem 1.25rem; }
+          .chat-markdown h1, .chat-markdown h2, .chat-markdown h3 { font-weight: 600; margin: 0.75rem 0 0.35rem; }
+          .chat-markdown code { background: rgba(127, 127, 127, 0.16); border-radius: 0.25rem; padding: 0.1rem 0.25rem; }
+          .chat-markdown pre { overflow-x: auto; background: rgba(127, 127, 127, 0.12); border-radius: 0.5rem; padding: 0.75rem; margin: 0.75rem 0; }
+          .chat-markdown pre code { background: transparent; padding: 0; }
         `}</style>
 
         {/* rail */}
-        <aside className="hidden sm:flex w-17 shrink-0 flex-col items-center gap-7 py-5 border-r border-[#E4DED2] dark:border-[#3C3F41]">
-          <div className="w-7.5 h-7.5 rounded-lg bg-linear-to-br from-[#423368] to-[#6C5A9C]" aria-hidden="true" />
+        <aside className={`hidden sm:flex shrink-0 flex-col gap-7 py-5 border-r border-[#E4DED2] dark:border-[#3C3F41] transition-[width] duration-200 ${sidebarOpen ? 'w-64 px-3' : 'w-17 items-center'}`}>
+          <div
+            className={`relative flex items-center ${sidebarOpen ? 'justify-between w-full px-1' : 'justify-center'}`}
+            onMouseEnter={() => setSidebarHover(true)}
+            onMouseLeave={() => setSidebarHover(false)}
+          >
+            <button
+              type="button"
+              onClick={() => setSidebarOpen((value) => !value)}
+              aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+              className={`w-7.5 h-7.5 rounded-lg flex items-center justify-center transition-colors ${sidebarHover || sidebarOpen ? 'bg-[#2A2438] text-[#B7A9E0]' : 'bg-linear-to-br from-[#423368] to-[#6C5A9C]'}`}
+            >
+              {sidebarHover || sidebarOpen ? <PanelLeft size={17} strokeWidth={1.8} /> : <span className="w-7.5 h-7.5" />}
+            </button>
+            {sidebarHover && !sidebarOpen && (
+              <span className="absolute left-12 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-[#1B1B1B] px-4 py-2 text-[14px] font-semibold text-white shadow-lg">
+                Open sidebar
+              </span>
+            )}
+            {sidebarOpen && <span className="text-[13px] font-semibold text-[#6B6560] dark:text-[#9AA0A6]">Your threads</span>}
+          </div>
 
-          <nav className="flex flex-1 flex-col gap-1.5">
+          {sidebarOpen && (
+            <div className="w-full flex-1 overflow-y-auto space-y-1">
+              {previousChats.length === 0 ? (
+                <p className="px-2 text-[12px] text-[#9B958C]">No previous chats yet.</p>
+              ) : previousChats.map((chatItem) => (
+                <button
+                  key={chatItem._id}
+                  type="button"
+                  onClick={() => openPreviousChat(chatItem)}
+                  className="w-full truncate rounded-lg px-3 py-2 text-left text-[13px] text-[#6B6560] dark:text-[#B8B4AE] hover:bg-[#EFEAF6] dark:hover:bg-[#2A2438] hover:text-[#423368] dark:hover:text-[#B7A9E0]"
+                  title={chatItem.title}
+                >
+                  {chatItem.title}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {!sidebarOpen && <nav className="flex flex-1 flex-col gap-1.5">
             {NAV_ITEMS.map(({ icon: Icon, label }) => (
               <button
                 key={label}
@@ -155,9 +251,9 @@ const Dashboard = () => {
                 <Icon size={18} strokeWidth={1.8} />
               </button>
             ))}
-          </nav>
+          </nav>}
 
-          <div className="flex flex-col items-center gap-3.5">
+          <div className={`flex ${sidebarOpen ? 'flex-row justify-between w-full px-1' : 'flex-col items-center'} gap-3.5`}>
             <button
               type="button"
               onClick={toggleTheme}
@@ -223,7 +319,7 @@ const Dashboard = () => {
               </button>
               <button
                 type="button"
-                onClick={playIntroGlow}
+                onClick={startNewThread}
                 className="inline-flex items-center gap-1.5 border-none bg-[#1B1B1B] dark:bg-[#E8E6E3] hover:bg-[#423368] dark:hover:bg-[#8E7BBE] text-white dark:text-[#131314] rounded-lg px-3.5 py-2 text-[13px] font-medium"
               >
                 <Plus size={14} strokeWidth={1.8} />
@@ -233,24 +329,44 @@ const Dashboard = () => {
           </header>
 
           {/* hero */}
-          <main className="flex-1 flex flex-col items-center justify-center px-5 pb-16 pt-6">
-            <div
+          <main className={`flex-1 flex flex-col items-center px-5 pb-16 pt-6 ${messages.length ? 'justify-start' : 'justify-center'}`}>
+            {!messages.length && <div
               className="w-11.5 h-11.5 rounded-full mb-5 motion-safe:animate-pulse"
               style={{
                 background: 'radial-gradient(circle at 35% 30%, #8E7BBE, #423368 70%)',
                 boxShadow: '0 0 34px rgba(66,51,104,0.35)',
               }}
               aria-hidden="true"
-            />
+            />}
 
-            <h1 className="font-['Fraunces'] font-medium text-center leading-tight text-[28px] sm:text-[38px] mb-2.5">
+            {!messages.length && <h1 className="font-['Fraunces'] font-medium text-center leading-tight text-[28px] sm:text-[38px] mb-2.5">
               {greeting}, {firstName}
-            </h1>
-            <p className="max-w-105 text-center text-[#6B6560] dark:text-[#9AA0A6] text-[15px] leading-relaxed mb-9">
+            </h1>}
+            {!messages.length && <p className="max-w-105 text-center text-[#6B6560] dark:text-[#9AA0A6] text-[15px] leading-relaxed mb-9">
               Ask a question and get an answer{' '}
               <span className="text-[#423368] dark:text-[#B7A9E0] font-medium">backed by sources</span> you can
               check yourself.
-            </p>
+            </p>}
+
+            {messages.length > 0 && (
+              <div className="w-full max-w-170 flex-1 overflow-y-auto py-6 space-y-5 mb-5">
+                {messages.map((message) => (
+                  <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={message.sender === 'user'
+                      ? 'max-w-[85%] rounded-2xl rounded-br-md bg-[#423368] px-4 py-3 text-white whitespace-pre-wrap'
+                      : 'max-w-[92%] rounded-2xl rounded-bl-md border border-[#E4DED2] dark:border-[#3C3F41] bg-white dark:bg-[#1E1F20] px-4 py-3 text-[#1B1B1B] dark:text-[#E8E6E3]'}>
+                      {message.sender === 'assistant' ? (
+                        <div className="chat-markdown text-[14px] leading-6">
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
+                      ) : message.content}
+                    </div>
+                  </div>
+                ))}
+                {isLoading && <div className="text-[13px] text-[#6B6560] dark:text-[#9AA0A6] animate-pulse">Thinking…</div>}
+                {error && <div className="text-[13px] text-red-500">{error}</div>}
+              </div>
+            )}
 
             {/* composer, wrapped so the shimmer border can sit around it */}
             <div
@@ -366,7 +482,7 @@ const Dashboard = () => {
             </div>
 
             {/* quick-start prompts */}
-            <div className="w-full max-w-170 flex flex-wrap justify-center gap-2.5 mt-6">
+            {!messages.length && <div className="w-full max-w-170 flex flex-wrap justify-center gap-2.5 mt-6">
               {PROMPTS.map((p) => (
                 <button
                   key={p.title}
@@ -378,7 +494,7 @@ const Dashboard = () => {
                   <p className="text-[12.5px] text-[#6B6560] dark:text-[#9AA0A6] m-0 leading-snug">{p.detail}</p>
                 </button>
               ))}
-            </div>
+            </div>}
           </main>
         </div>
       </div>

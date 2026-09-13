@@ -42,6 +42,6 @@ const chatSchema = new mongoose.Schema(
 chatSchema.index({ user: 1, updatedAt: -1 });
 chatSchema.index({ title: "text", summary: "text" });
 
-const messageModel = mongoose.models.Chat || mongoose.model("Message", chatSchema);
+const Chat = mongoose.models.Chat || mongoose.model("Chat", chatSchema);
 
-export default messageModel;
+export default Chat;

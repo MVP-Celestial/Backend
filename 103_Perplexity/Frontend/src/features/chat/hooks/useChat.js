@@ -1,7 +1,7 @@
-import {initializeSocketConnection} from "../service/chat.socket"
-import {sendMessage, getChats, getMessages, deleteChat} from "../service/chat.api"
+import { initializeSocketConnection } from "../service/chat.socket"
+import { sendMessage } from "../service/chat.api"
 import { useDispatch } from "react-redux"
-import {setChats, setCurrentChat, setError, setLoading} from "../chat.slice"
+import { setCurrentChatId, setError, setLoading } from "../chat.slice"
 
 
 
@@ -11,20 +11,18 @@ export const useChat = () => {
 
     async function handleSendMessage(message, chatId) {
         dispatch(setLoading(true))
-       const data = await sendMessage({ message, chatId })
-       const {chat, aiMsg} = data
-       dispatch(setChats((prev) => {
+        dispatch(setError(null))
 
-        return {
-            ...prev,
-            [chat.title]: {
-                ...chat,
-                messages: [...chat.messages, aiMsg]
-                
-            }
+        try {
+            const data = await sendMessage({ message, chatId })
+            dispatch(setCurrentChatId(data.chat._id))
+            return data
+        } catch (error) {
+            dispatch(setError(error.response?.data?.message || 'Unable to send message'))
+            throw error
+        } finally {
+            dispatch(setLoading(false))
         }
-
-       }))
     }
 
     return {
