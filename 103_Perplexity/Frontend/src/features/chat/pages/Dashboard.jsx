@@ -37,8 +37,6 @@ const NAV_ITEMS = [
   { icon: Database, label: 'Sources' },
 ]
 
-const FOCUS_MODES = ['Balanced', 'Academic', 'Concise', 'Creative']
-
 const PROMPTS = [
   {
     title: 'Draft a project plan',
@@ -85,18 +83,26 @@ const Dashboard = () => {
   const { currentChatId, isLoading, error } = useSelector((state) => state.chat)
 
   const [query, setQuery] = useState('')
+  const [attachOpen, setAttachOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [previousChats, setPreviousChats] = useState([])
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarHover, setSidebarHover] = useState(false)
-  const [focusMode, setFocusMode] = useState(FOCUS_MODES[0])
-  const [focusOpen, setFocusOpen] = useState(false)
   const [citationsOn, setCitationsOn] = useState(true)
   const [glowPhase, setGlowPhase] = useState('hidden') // 'in' | 'fading' | 'hidden'
   const [dark, setDark] = useState(
     () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches
   )
   const inputRef = useRef(null)
+  const fileInputRef = useRef(null)
+
+  const handleFilesSelected = (event) => {
+    const selectedFiles = Array.from(event.target.files || [])
+    if (selectedFiles.length) {
+      setAttachOpen(false)
+    }
+    event.target.value = ''
+  }
 
   useEffect(() => {
     chat.initializeSocketConnection?.()
@@ -182,12 +188,14 @@ const Dashboard = () => {
 
   return (
     <div className={dark ? 'dark' : ''}>
-      <div className="flex min-h-screen bg-[#FAF8F4] dark:bg-[#131314] text-[#1B1B1B] dark:text-[#E8E6E3] font-['Inter'] transition-colors duration-300">
+      <div className="flex h-screen overflow-hidden bg-[#FAF8F4] dark:bg-[#131314] text-[#1B1B1B] dark:text-[#E8E6E3] font-['Inter'] transition-colors duration-300">
         <style>{`
           @keyframes shimmerMove {
             0% { background-position: 0% 50%; }
             100% { background-position: 200% 50%; }
           }
+          .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+          .hide-scrollbar::-webkit-scrollbar { display: none; }
           .chat-markdown p { margin: 0 0 0.75rem; }
           .chat-markdown p:last-child { margin-bottom: 0; }
           .chat-markdown ul { list-style: disc; margin: 0.5rem 0 0.75rem 1.25rem; }
@@ -222,7 +230,7 @@ const Dashboard = () => {
           </div>
 
           {sidebarOpen && (
-            <div className="w-full flex-1 overflow-y-auto space-y-1">
+            <div className="hide-scrollbar w-full flex-1 overflow-y-auto space-y-1">
               {previousChats.length === 0 ? (
                 <p className="px-2 text-[12px] text-[#9B958C]">No previous chats yet.</p>
               ) : previousChats.map((chatItem) => (
@@ -286,9 +294,9 @@ const Dashboard = () => {
           </div>
         </aside>
 
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
           {/* top bar */}
-          <header className="flex flex-wrap items-center justify-between gap-4 px-4 sm:px-8 py-4">
+          <header className="shrink-0 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-8 py-1">
             <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#6B6560] dark:text-[#9AA0A6]">
               <Sparkles size={14} strokeWidth={1.8} />
               Sonar Pro
@@ -329,7 +337,7 @@ const Dashboard = () => {
           </header>
 
           {/* hero */}
-          <main className={`flex-1 flex flex-col items-center px-5 pb-16 pt-6 ${messages.length ? 'justify-start' : 'justify-center'}`}>
+          <main className={`min-h-0 flex-1 overflow-hidden flex flex-col items-center px-5 pb-3 pt-1 ${messages.length ? 'justify-start' : 'justify-center'}`}>
             {!messages.length && <div
               className="w-11.5 h-11.5 rounded-full mb-5 motion-safe:animate-pulse"
               style={{
@@ -349,7 +357,7 @@ const Dashboard = () => {
             </p>}
 
             {messages.length > 0 && (
-              <div className="w-full max-w-170 flex-1 overflow-y-auto py-6 space-y-5 mb-5">
+              <div className="hide-scrollbar w-full max-w-170 min-h-0 flex-1 overflow-y-auto py-6 space-y-5 mb-5">
                 {messages.map((message) => (
                   <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={message.sender === 'user'
@@ -390,7 +398,7 @@ const Dashboard = () => {
               )}
               <form
                 onSubmit={handleSubmit}
-                className="relative z-10 bg-white dark:bg-[#1E1F20] border border-[#E4DED2] dark:border-[#3C3F41] rounded-2xl px-4.5 pt-4 pb-3 shadow-[0_1px_2px_rgba(27,27,27,0.04)]"
+                className="relative z-10 bg-white dark:bg-[#1E1F20] border border-[#E4DED2] dark:border-[#3C3F41] rounded-2xl px-3 pt-1.5 pb-1.5 shadow-[0_1px_2px_rgba(27,27,27,0.04)]"
               >
                 <textarea
                   ref={inputRef}
@@ -408,49 +416,44 @@ const Dashboard = () => {
                 />
 
                 <div className="flex items-center gap-2 mt-3.5">
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 border border-[#E4DED2] dark:border-[#3C3F41] rounded-lg px-2.5 py-1.5 text-[12.5px] text-[#6B6560] dark:text-[#9AA0A6] hover:border-[#423368] dark:hover:border-[#8E7BBE] hover:text-[#423368] dark:hover:text-[#B7A9E0]"
-                  >
-                    <Paperclip size={14} strokeWidth={1.8} />
-                    Attach
-                  </button>
-
                   <div className="relative">
                     <button
                       type="button"
-                      onClick={() => setFocusOpen((v) => !v)}
-                      aria-haspopup="listbox"
-                      aria-expanded={focusOpen}
+                      onClick={() => setAttachOpen((value) => !value)}
+                      aria-haspopup="menu"
+                      aria-expanded={attachOpen}
                       className="inline-flex items-center gap-1.5 border border-[#E4DED2] dark:border-[#3C3F41] rounded-lg px-2.5 py-1.5 text-[12.5px] text-[#6B6560] dark:text-[#9AA0A6] hover:border-[#423368] dark:hover:border-[#8E7BBE] hover:text-[#423368] dark:hover:text-[#B7A9E0]"
                     >
-                      {focusMode}
-                      <ChevronDown size={14} strokeWidth={1.8} />
+                      <Paperclip size={14} strokeWidth={1.8} />
+                      Attach
                     </button>
 
-                    {focusOpen && (
-                      <div
-                        role="listbox"
-                        className="absolute top-[calc(100%+6px)] left-0 min-w-35 bg-white dark:bg-[#1E1F20] border border-[#E4DED2] dark:border-[#3C3F41] rounded-[10px] p-1.5 shadow-[0_8px_24px_rgba(27,27,27,0.08)] z-10"
-                      >
-                        {FOCUS_MODES.map((mode) => (
-                          <button
-                            key={mode}
-                            type="button"
-                            role="option"
-                            aria-selected={mode === focusMode}
-                            onClick={() => {
-                              setFocusMode(mode)
-                              setFocusOpen(false)
-                            }}
-                            className="block w-full text-left rounded-md px-2 py-1.5 text-[13px] text-[#1B1B1B] dark:text-[#E8E6E3] hover:bg-[#EFEAF6] dark:hover:bg-[#2A2438] hover:text-[#423368] dark:hover:text-[#B7A9E0]"
-                          >
-                            {mode}
-                          </button>
-                        ))}
+                    {attachOpen && (
+                      <div role="menu" className="absolute bottom-[calc(100%+8px)] left-0 z-30 min-w-56 rounded-xl border border-[#3C3F41] bg-[#2B2B2B]  shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex w-full items-center justify-between gap-5 rounded-lg px-3 py-2 text-left text-[14px] text-[#F1F1F1] hover:bg-[#414141]"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Paperclip size={16} strokeWidth={1.8} />
+                            Add files 
+                          </span>
+                          <span className="text-[10px] text-[#A8A8A8]">Ctrl U</span>
+                        </button>
                       </div>
                     )}
                   </div>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf,.doc,.docx,.txt,.csv,.md"
+                    onChange={handleFilesSelected}
+                    className="hidden"
+                  />
 
                   <div className="flex-1" />
 

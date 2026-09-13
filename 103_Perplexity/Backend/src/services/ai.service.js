@@ -35,10 +35,14 @@ export async function generateResponse(message) {
 const searchInternetTool = tool(searchInternet, {
   name: "searchInternet",
   description: "Search the internet for current information.",
-  schema: z.string(),
+  schema: z.object({
+    query: z.string().min(1),
+  }),
 });
 
 const agent = createAgent({
   model: geminiModel,
   tools: [searchInternetTool],
+  systemPrompt:
+    "You are a helpful assistant. For questions asking for current, live, latest, today's, or real-time information—including prices, markets, news, weather, and events—you must call searchInternet before answering. Use the search results to answer and mention when the information was retrieved. Do not claim that you lack internet access if the search tool is available.",
 });
