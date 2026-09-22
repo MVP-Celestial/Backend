@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useSelector } from 'react-redux'
 import ReactMarkdown from 'react-markdown'
 import { useChat } from '../hooks/useChat'
@@ -181,18 +182,71 @@ const Dashboard = () => {
     inputRef.current?.focus()
   }
 
-  const toggleTheme = () => {
-    setDark((v) => !v)
-    playIntroGlow()
+  const toggleTheme = (event) => {
+    const next = !dark
+
+    // Reduced motion, or a browser without support (Firefox, older Safari):
+    // just flip the theme instantly, no circle.
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    if (!document.startViewTransition || reduceMotion) {
+      setDark(next)
+      playIntroGlow()
+      return
+    }
+
+    // Origin point: center of whichever toggle button was clicked
+    // (there are two — the rail button and the small-screen header button).
+    const rect = event.currentTarget.getBoundingClientRect()
+    const x = rect.left + rect.width / 2
+    const y = rect.top + rect.height / 2
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    )
+
+    // Stop every ordinary CSS transition (color fades, hover states) from
+    // running underneath the reveal — they'd otherwise repaint in parallel
+    // with the clip-path animation and cause stutter.
+    document.documentElement.classList.add('vt-active')
+
+    const transition = document.startViewTransition(() => {
+      // flushSync forces React to commit this state update synchronously,
+      // so the DOM is already updated by the time the transition snapshots
+      // the "new" state. Without it the reveal can flicker or no-op.
+      flushSync(() => setDark(next))
+    })
+
+    transition.ready.then(() => {
+      document.documentElement.animate(
+        {
+          clipPath: [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${endRadius}px at ${x}px ${y}px)`,
+          ],
+        },
+        {
+          duration: 600,
+          easing: 'cubic-bezier(.16,1,.3,1)', // ease-out-expo: quick start, glides to a stop
+          pseudoElement: '::view-transition-new(root)',
+        }
+      )
+    })
+
+    // Re-enable transitions and replay the shimmer only once the circle is
+    // fully done, so the two never compete for paint time at once.
+    transition.finished.then(() => {
+      document.documentElement.classList.remove('vt-active')
+      playIntroGlow()
+    })
   }
 
   return (
     <div className={dark ? 'dark' : ''}>
-      <div className="flex h-screen overflow-hidden bg-[#FAF8F4] dark:bg-[#131314] text-[#1B1B1B] dark:text-[#E8E6E3] font-['Inter'] transition-colors duration-300">
+      <div className="flex h-screen overflow-hidden bg-[#FAF8F4] dark:bg-[#131314] text-[#1B1B1B] dark:text-[#E8E6E3] font-['Inter']">
         <style>{`
           @keyframes shimmerMove {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 200% 50%; }
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-66.6667%); }
           }
           .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
           .hide-scrollbar::-webkit-scrollbar { display: none; }
@@ -204,6 +258,23 @@ const Dashboard = () => {
           .chat-markdown code { background: rgba(127, 127, 127, 0.16); border-radius: 0.25rem; padding: 0.1rem 0.25rem; }
           .chat-markdown pre { overflow-x: auto; background: rgba(127, 127, 127, 0.12); border-radius: 0.5rem; padding: 0.75rem; margin: 0.75rem 0; }
           .chat-markdown pre code { background: transparent; padding: 0; }
+
+          ::view-transition-old(root),
+          ::view-transition-new(root) {
+            animation: none;
+            mix-blend-mode: normal;
+          }
+          ::view-transition-old(root) { z-index: 1; }
+          ::view-transition-new(root) { z-index: 2; }
+
+          /* While a theme view-transition is running, kill every ordinary CSS
+             transition (color fades, hover states, etc.) so nothing else is
+             competing with the clip-path reveal for paint time. */
+          html.vt-active *,
+          html.vt-active *::before,
+          html.vt-active *::after {
+            transition: none !important;
+          }
         `}</style>
 
         {/* rail */}
@@ -385,16 +456,23 @@ const Dashboard = () => {
               {glowPhase !== 'hidden' && (
                 <div
                   aria-hidden="true"
-                  className={`absolute inset-0 rounded-2xl transition-opacity ease-out ${
+                  className={`absolute inset-0 rounded-2xl overflow-hidden transition-opacity ease-out ${
                     glowPhase === 'fading' ? 'opacity-0 duration-600' : 'opacity-100 duration-300'
                   }`}
-                  style={{
-                    backgroundImage:
-                      'linear-gradient(115deg, #6C5CE7, #4B8BF5, #22C1C3, #F7CB45, #FF6B9D, #6C5CE7)',
-                    backgroundSize: '300% 100%',
-                    animation: 'shimmerMove 2.5s linear infinite',
-                  }}
-                />
+                >
+                  <div
+                    className="absolute inset-y-0"
+                    style={{
+                      left: 0,
+                      width: '300%',
+                      backgroundImage:
+                        'linear-gradient(115deg, #6C5CE7, #4B8BF5, #22C1C3, #F7CB45, #FF6B9D, #6C5CE7)',
+                      backgroundSize: '100% 100%',
+                      animation: 'shimmerMove 2.5s linear infinite',
+                      willChange: 'transform',
+                    }}
+                  />
+                </div>
               )}
               <form
                 onSubmit={handleSubmit}
